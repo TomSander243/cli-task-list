@@ -1,6 +1,9 @@
 use clap::{Parser, Subcommand};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+
 mod config;
+
+const CONFIG_PATH: &str = "./config.json";
 
 #[derive(Parser)]
 #[command(
@@ -13,6 +16,10 @@ struct Cli {
     /// Set directory
     #[arg(short, long, value_name = "DIR")]
     dir: Option<PathBuf>,
+
+    /// Show directory
+    #[arg(short, long)]
+    show_dir: bool,
 
     #[command(subcommand)]
     command: Option<Commands>,
@@ -31,15 +38,26 @@ enum Commands {
 }
 
 fn main() {
-    let config_path = "./config.json";
+    let cli: Cli = Cli::parse();
 
-    let config = config::read_config(config_path);
-    println!("User directory: {}", config.user_dir.display());
+    match &cli.dir {
+        Some(dir) => {
+            config::write_config(
+                CONFIG_PATH,
+                &config::Config {
+                    user_dir: dir.clone(),
+                },
+            );
+        }
+        None => {}
+    }
 
-    let cli = Cli::parse();
-
-    if let Some(dir_path) = cli.dir.as_deref() {
-        println!("Path to directory: {}", dir_path.display());
+    match &cli.show_dir {
+        true => {
+            let config: config::Config = config::read_config(CONFIG_PATH);
+            println!("User directory: {}", config.user_dir.display());
+        }
+        false => {}
     }
 
     match &cli.command {
