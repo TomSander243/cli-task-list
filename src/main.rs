@@ -1,4 +1,5 @@
 use clap::{Parser, Subcommand};
+use serde::de::value::BoolDeserializer;
 use std::path::{Path, PathBuf};
 
 mod config;
@@ -13,14 +14,6 @@ const CONFIG_PATH: &str = "./config.json";
     author = "Tom"
 )]
 struct Cli {
-    /// Set directory
-    #[arg(short, long, value_name = "DIR")]
-    dir: Option<PathBuf>,
-
-    /// Show directory
-    #[arg(short, long)]
-    show_dir: bool,
-
     #[command(subcommand)]
     command: Option<Commands>,
 }
@@ -35,30 +28,16 @@ enum Commands {
         /// Second Number
         second_number: i32,
     },
+
+    /// Changes user directory, or prints current directory if no argument is given
+    Dir {
+        /// New user directory
+        dir: Option<PathBuf>,
+    },
 }
 
 fn main() {
     let cli: Cli = Cli::parse();
-
-    match &cli.dir {
-        Some(dir) => {
-            config::write_config(
-                CONFIG_PATH,
-                &config::Config {
-                    user_dir: dir.clone(),
-                },
-            );
-        }
-        None => {}
-    }
-
-    match &cli.show_dir {
-        true => {
-            let config: config::Config = config::read_config(CONFIG_PATH);
-            println!("User directory: {}", config.user_dir.display());
-        }
-        false => {}
-    }
 
     match &cli.command {
         Some(Commands::Add {
@@ -66,6 +45,19 @@ fn main() {
             second_number,
         }) => {
             println!("{}", first_number + second_number);
+        }
+        Some(Commands::Dir { dir }) => {
+            if let Some(dir) = dir {
+                config::write_config(
+                    CONFIG_PATH,
+                    &config::Config {
+                        user_dir: dir.clone(),
+                    },
+                );
+            } else {
+                let config: config::Config = config::read_config(CONFIG_PATH);
+                println!("User directory: {}", config.user_dir.display());
+            }
         }
         None => {}
     }
